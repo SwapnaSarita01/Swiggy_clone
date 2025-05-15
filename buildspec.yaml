@@ -58,7 +58,8 @@ phases:
           -Dsonar.projectKey=swiggy \
           -Dsonar.sources=. \
           -Dsonar.host.url=http://54.235.236.107:9000 \
-          -Dsonar.login=$SONAR_TOKEN
+          -Dsonar.login=$SONAR_TOKEN \
+          -Dsonar.exclusions=**/*.map
 
       # - echo "Sending email notification..."
       # - aws ses send-email \
