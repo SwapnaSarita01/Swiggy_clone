@@ -60,13 +60,13 @@ phases:
           -Dsonar.host.url=http://54.235.236.107:9000 \
           -Dsonar.login=$SONAR_TOKEN
 
-      - echo "Sending email notification..."
-      - aws ses send-email \
-          --from "swapnakar967@gmail.com" \
-          --to "swapnakar967@gmail.com" \
-          --subject "CodeBuild Status: $CODEBUILD_BUILD_ID" \
-          --text "Build status: $CODEBUILD_BUILD_STATUS" \
-          --region "us-east-1"
+      # - echo "Sending email notification..."
+      # - aws ses send-email \
+      #     --from "swapnakar967@gmail.com" \
+      #     --to "swapnakar967@gmail.com" \
+      #     --subject "CodeBuild Status: $CODEBUILD_BUILD_ID" \
+      #     --text "Build status: $CODEBUILD_BUILD_STATUS" \
+      #     --region "us-east-1"
 
 
 
