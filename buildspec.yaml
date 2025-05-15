@@ -6,28 +6,22 @@ env:
     DOCKER_REGISTRY_PASSWORD: /myapp/docker-credentials/password
     DOCKER_REGISTRY_URL: /myapp/docker-registry/url
     SONAR_TOKEN: /sonar/sonar-token
-
 phases:
   install:
     runtime-versions:
       python: 3.11
       java: corretto17
-
   pre_build:
     commands:
       - echo "Installing dependencies..."
-      - echo "Downloading Trivy for filesystem scan..."
+      - echo "Performing Trivy file scan before building the image..."
       - wget https://github.com/aquasecurity/trivy/releases/download/v0.19.2/trivy_0.19.2_Linux-64bit.tar.gz
       - tar zxvf trivy_0.19.2_Linux-64bit.tar.gz
       - export PATH=$PATH:$PWD
-      - echo "Running Trivy filesystem scan..."
       - trivy filesystem --exit-code 0 --no-progress . >> trivyfilescan.txt
-
-      - echo "Downloading OWASP Dependency-Check..."
+      - echo "Downloading and installing OWASP Dependency-Check..."
       - wget https://github.com/jeremylong/DependencyCheck/releases/download/v7.0.2/dependency-check-7.0.2-release.zip
       - unzip dependency-check-7.0.2-release.zip
-
-      - echo "Setting up SonarQube Scanner..."
       - export SONAR_SCANNER_VERSION=4.7.0.2747
       - export SONAR_SCANNER_HOME=$HOME/.sonar/sonar-scanner-$SONAR_SCANNER_VERSION-linux
       - curl --create-dirs -sSLo $HOME/.sonar/sonar-scanner.zip https://binaries.sonarsource.com/Distribution/sonar-scanner-cli/sonar-scanner-cli-$SONAR_SCANNER_VERSION-linux.zip
@@ -37,38 +31,44 @@ phases:
 
   build:
     commands:
-      - echo "Running tests... (if any)"
+      - echo "Running tests..."
       - echo "Building Docker image..."
       - echo "$DOCKER_REGISTRY_PASSWORD" | docker login -u "$DOCKER_REGISTRY_USERNAME" --password-stdin "$DOCKER_REGISTRY_URL"
       - docker build -t "$DOCKER_REGISTRY_URL/$DOCKER_REGISTRY_USERNAME/swiggy:latest" .
       - docker push "$DOCKER_REGISTRY_URL/$DOCKER_REGISTRY_USERNAME/swiggy:latest"
-
   post_build:
     commands:
-      - echo "Running Trivy image scan..."
-      - trivy image "$DOCKER_REGISTRY_URL/$DOCKER_REGISTRY_USERNAME/swiggy:latest" >> trivyimage.txt
+      - echo "Performing Trivy image scan after building the image..."
+      # - aws ses send-email --from "swapnakar967@gmail.com" --to "swapnakar967@gmail.com" --subject "CodeBuild Status: $CODEBUILD_BUILD_ID" --text "Build status: $CODEBUILD_BUILD_STATUS" --region "us-east-1" 
 
-      - echo "Running OWASP Dependency-Check..."
+      - trivy image  "$DOCKER_REGISTRY_USERNAME/swiggy:latest" >> trivyimage.txt
+      - echo "Running OWASP Dependency-Check scan..."
       - cd dependency-check/bin
       - ./dependency-check.sh --scan . --format ALL
-      - cd ../.. # return to project root
+      - echo "Build completed successfully!"
+      - echo "Running SonarQube analysis result"
+      - sonar-scanner \
+        -Dsonar.projectKey=swiggy_clone \
+        -Dsonar.sources=. \
+        -Dsonar.host.url=http://54.235.236.107/:9000 \
+        -Dsonar.login=$SONAR_TOKEN
 
-      - echo "Running SonarQube analysis..."
-      - echo "Checking SONAR_TOKEN"
-      - if [ -z "$SONAR_TOKEN" ]; then echo "SONAR_TOKEN is empty!"; else echo "SONAR_TOKEN is set"; fi
-      - sonar-scanner -X -Dsonar.projectKey=swiggy -Dsonar.sources=. -Dsonar.host.url=http://54.235.236.107:9000 -Dsonar.login=$SONAR_TOKEN -Dsonar.exclusions=**/*.map
+      # - aws ses send-email --from "swapnakar967@gmail.com" --to "swapnakar967@gmail.com" --subject "CodeBuild Status: $CODEBUILD_BUILD_ID" --text "Build status: $CODEBUILD_BUILD_STATUS" --region "us-east-1" 
+      # Update with your preferred AWS region
 
+# post_build:
+#   commands:
+#     - aws ses send-email \
+#         --from "swapnakar967@gmail.com" \
+#         --to "swapnakar967@gmail.com" \
+#         --subject "CodeBuild Status: $CODEBUILD_BUILD_ID" \
+#         --text "Build status: $CODEBUILD_BUILD_STATUS" \
+#         --region "us-east-1" # Update with your preferred AWS region
+artifacts:
+  files:
+    - trivyfilescan.txt
+    - trivyimage.txt
+    - dependency-check/bin/dependency-check-report.*
+  discard-paths: yes
 
-      # - echo "Sending email notification..."
-      # - aws ses send-email \
-      #     --from "swapnakar967@gmail.com" \
-      #     --to "swapnakar967@gmail.com" \
-      #     --subject "CodeBuild Status: $CODEBUILD_BUILD_ID" \
-      #     --text "Build status: $CODEBUILD_BUILD_STATUS" \
-      #     --region "us-east-1"
-
-
-
-# artifacts:
-#   files:
 #     - appspec.yaml
