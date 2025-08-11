@@ -56,7 +56,7 @@ phases:
       - echo "Running SonarQube analysis..."
       - echo "Checking SONAR_TOKEN"
       - if [ -z "$SONAR_TOKEN" ]; then echo "SONAR_TOKEN is empty!"; else echo "SONAR_TOKEN is set"; fi
-      - sonar-scanner -X -Dsonar.projectKey=swiggy -Dsonar.sources=. -Dsonar.host.url=http://50.16.66.89:9000 -Dsonar.login=$SONAR_TOKEN -Dsonar.exclusions=**/*.map -Dsonar.dependencyCheck.reportPath=../../dependency-check-report.xml
+      - sonar-scanner -X -Dsonar.projectKey=swiggy -Dsonar.sources=. -Dsonar.host.url=http://15.206.167.27:9000 -Dsonar.login=$SONAR_TOKEN -Dsonar.exclusions=**/*.map -Dsonar.dependencyCheck.reportPath=../../dependency-check-report.xml
 
 
       # - echo "Sending email notification..."
